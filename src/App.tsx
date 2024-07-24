@@ -1,6 +1,6 @@
 import React from "react";
 import { Layout, Menu, theme } from "antd";
-import Grok from './Grok'
+import Grok from './tools/grok/Grok'
 import "./App.css";
 import { Routes, Route, useNavigate } from "react-router-dom";
 

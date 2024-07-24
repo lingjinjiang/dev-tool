@@ -1,6 +1,6 @@
 import { Table } from "antd";
 
-export default function Result({ result }) {
+export default function Result({ result }: { result: Map<String, String> }) {
     const columns = [
         {
             title: '字段',
@@ -13,10 +13,9 @@ export default function Result({ result }) {
             key: 'value'
         }
     ]
-    const data = Object.entries(result).reduce((acc, curr, index) => {
-        acc.push({ key: index + 1, field: curr[0], value: curr[1] })
-        return acc;
-    }, []);
+    const data =
+        Object.entries(result).map(([field, value], index) => ({ key: index, field, value }))
+            .sort((a, b) => a.field.localeCompare(b.field));
     return (
         <Table columns={columns} dataSource={data} />
     );
