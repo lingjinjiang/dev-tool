@@ -1,48 +1,61 @@
 import React from "react";
-import { Layout, Menu, theme } from "antd";
 import Grok from './tools/grok/Grok'
 import "./App.css";
 import { Routes, Route, useNavigate } from "react-router-dom";
+import { makeStyles } from "@fluentui/react-components";
+import { NavDrawer, NavDrawerBody, NavItem } from "@fluentui/react-nav-preview";
 
-const { Content, Sider } = Layout;
-
-const items = [
-  {
-    key: "/grok",
-    label: `Grok`
+const useStyles = makeStyles({
+  root: {
+    overflow: "hidden",
+    display: "flex",
   },
-  {
-    key: "/test",
-    label: `Test`
-  }
-]
+  content: {
+    flex: "1",
+    padding: "16px",
+    display: "grid",
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
+})
+
+type NavItem = {
+  navigate: React.MouseEventHandler<HTMLButtonElement>,
+  label: string,
+  key: string,
+}
 
 const App: React.FC = () => {
-  const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
-
-  const naviagte = useNavigate();
-  function onClick(e) {
-    naviagte(e.key, { replace: true });
-  }
+  const styles = useStyles();
+  const navigate = useNavigate();
+  const navItems: NavItem[] = [{
+    navigate: () => { navigate("/grok", { replace: true }) },
+    label: `Grok`,
+    key: 'grok',
+  }];
+  const buildNavItems = () => {
+    return navItems.map(i => <NavItem value={i.key} onClick={i.navigate}>{i.label}</NavItem>)
+  };
   return (
-    <Layout>
-      <Sider style={{ height: '100vh' }}>
-        <Menu theme="dark" mode="inline" defaultSelectedKeys={["/grok"]} items={items} onClick={onClick}></Menu>
-      </Sider>
-      <Layout>
-        <Content style={{ margin: '24px 16px 0', overflow: 'initial' }}>
-          <div style={{ padding: 24, background: colorBgContainer, borderRadius: borderRadiusLG }}>
-            <Routes>
-              <Route path="/" element={<Grok />} />
-              <Route path="/grok" element={<Grok />} />
-              <Route path="/test" element={<div>this is test</div>} />
-            </Routes>
-          </div>
-        </Content>
-      </Layout>
-    </Layout>
+    <div className={styles.root}>
+      <NavDrawer
+        defaultSelectedValue='grok'
+        defaultSelectedCategoryValue="1"
+        open={true}
+        type={"inline"}
+        style={{ height: '100vh', width: "100px" }}
+      >
+        <NavDrawerBody>
+          {buildNavItems()}
+        </NavDrawerBody>
+      </NavDrawer>
+      <div className={styles.content}>
+        <Routes>
+          <Route path="/" element={<Grok />}></Route>
+          <Route path="/grok" element={<Grok />}></Route>
+        </Routes>
+      </div>
+    </div>
   )
 }
 export default App;

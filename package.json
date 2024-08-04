@@ -10,8 +10,10 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@fluentui/react-components": "^9.54.7",
+    "@fluentui/react-icons": "^2.0.252",
+    "@fluentui/react-nav-preview": "^0.6.0",
     "@tauri-apps/api": "^1",
-    "antd": "^5.19.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.25.1"
