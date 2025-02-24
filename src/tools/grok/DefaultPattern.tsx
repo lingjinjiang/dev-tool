@@ -45,6 +45,7 @@ export default function DefaultPattern() {
         } else {
             filteredItems = items
         }
+        setTableContent(buildTableContent(filteredItems));
     }
     useEffect(() => {
         let result: Promise<Map<String, String>> = invoke("default_patterns");
