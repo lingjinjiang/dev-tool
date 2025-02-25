@@ -1,6 +1,7 @@
 import React from "react";
 import Grok from './tools/grok/Grok'
-import TimeCoverter from './tools/time/TimeConverter'
+import TimeConverter from './tools/time/TimeConverter'
+import Prometheus from './tools/metrics/Prometheus'
 import "./App.css";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
@@ -37,6 +38,10 @@ const App: React.FC = () => {
     navigate: () => { navigate("/time", { replace: true }) },
     label: `Time`,
     key: 'time',
+  }, {
+    navigate: () => { navigate("/metrics", { replace: true }) },
+    label: `Metrics`,
+    key: 'metrics',
   }];
   const buildNavItems = () => {
     return navItems.map(i => <NavItem value={i.key} onClick={i.navigate}>{i.label}</NavItem>)
@@ -58,7 +63,8 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<Grok />}></Route>
           <Route path="/grok" element={<Grok />}></Route>
-          <Route path="/time" element={<TimeCoverter />}></Route>
+          <Route path="/time" element={<TimeConverter />}></Route>
+          <Route path="/metrics" element={<Prometheus />}></Route>
         </Routes>
       </div>
     </div>
