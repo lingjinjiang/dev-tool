@@ -3,6 +3,8 @@
 use grok::Grok;
 use std::collections::HashMap;
 
+mod metrics;
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
