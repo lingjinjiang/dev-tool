@@ -3,6 +3,7 @@
 use grok::Grok;
 use std::collections::HashMap;
 
+mod lance;
 mod metrics;
 
 fn main() {
@@ -10,7 +11,11 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             extract_fields,
             validate_grok,
-            default_patterns
+            default_patterns,
+            metrics::prometheus_query_range,
+            lance::list_lance_tables,
+            lance::get_table_info,
+            lance::get_table_data
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
