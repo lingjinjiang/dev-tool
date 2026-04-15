@@ -24,7 +24,8 @@ import {
 
 const useStyles = makeStyles({
     root: {
-        width: "900px",
+        width: "100%",
+        maxWidth: "900px",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
@@ -119,7 +120,7 @@ export default function LanceViewer() {
     const [loading, setLoading] = useState(false);
     const [selectedTab, setSelectedTab] = useState<TabValue>("schema");
 
-    const handleTabSelect: SelectTabEventHandler = (event: SelectTabEvent, data: SelectTabData) => {
+    const handleTabSelect: SelectTabEventHandler = (_event: SelectTabEvent, data: SelectTabData) => {
         setSelectedTab(data.value);
     };
 

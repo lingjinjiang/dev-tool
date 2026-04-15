@@ -7,7 +7,8 @@ import { Dismiss24Regular } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
     root: {
-        width: "650px",
+        width: "100%",
+        maxWidth: "650px",
     },
     head: {
         marginBottom: "5px",

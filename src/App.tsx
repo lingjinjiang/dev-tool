@@ -3,6 +3,7 @@ import Grok from './tools/grok/Grok'
 import TimeConverter from './tools/time/TimeConverter'
 import Prometheus from './tools/metrics/Prometheus'
 import LanceViewer from './tools/lance/LanceViewer'
+import JsonValidator from './tools/json/JsonValidator'
 import "./App.css";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
@@ -15,10 +16,12 @@ const useStyles = makeStyles({
   },
   content: {
     flex: "1",
+    minWidth: 0,
     padding: "16px",
-    display: "grid",
-    justifyContent: "center",
-    alignItems: "flex-start",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    overflow: "auto",
   },
 })
 
@@ -47,9 +50,13 @@ const App: React.FC = () => {
     navigate: () => { navigate("/lance", { replace: true }) },
     label: `LanceDB`,
     key: 'lance',
+  }, {
+    navigate: () => { navigate("/json", { replace: true }) },
+    label: `JSON`,
+    key: 'json',
   }];
   const buildNavItems = () => {
-    return navItems.map(i => <NavItem value={i.key} onClick={i.navigate}>{i.label}</NavItem>)
+    return navItems.map(i => <NavItem style={{ padding: '4px 8px' }} value={i.key} onClick={i.navigate}>{i.label}</NavItem>)
   };
   return (
     <div className={styles.root}>
@@ -58,9 +65,9 @@ const App: React.FC = () => {
         defaultSelectedCategoryValue="1"
         open={true}
         type={"inline"}
-        style={{ height: '100vh', width: "100px" }}
+        style={{ height: '100vh', width: 'auto', minWidth: 0, flexShrink: 0 }}
       >
-        <NavDrawerBody>
+        <NavDrawerBody style={{ padding: '8px 0' }}>
           {buildNavItems()}
         </NavDrawerBody>
       </NavDrawer>
@@ -71,6 +78,7 @@ const App: React.FC = () => {
           <Route path="/time" element={<TimeConverter />}></Route>
           <Route path="/metrics" element={<Prometheus />}></Route>
           <Route path="/lance" element={<LanceViewer />}></Route>
+          <Route path="/json" element={<JsonValidator />}></Route>
         </Routes>
       </div>
     </div>

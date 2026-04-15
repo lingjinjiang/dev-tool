@@ -1,9 +1,8 @@
-import { Button, Input, Tooltip } from "@fluentui/react-components";
+import { Button, Input } from "@fluentui/react-components";
 import EChartsReact from "echarts-for-react";
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api";
 import moment from "moment";
-import Grid from "echarts/types/src/coord/cartesian/Grid.js";
 
 const Prometheus = () => {
     const [disabled, setDisabled] = useState(false);
@@ -63,7 +62,7 @@ const Prometheus = () => {
     }
 
     return (
-        <div style={{ width: "650px" }}>
+        <div style={{ width: "100%", maxWidth: "650px" }}>
             <div>
                 <Input type="text" placeholder="prometheus url" style={{ width: "70%" }} value={promUrl} disabled={disabled} onChange={(e) => setPromUrl(e.target.value)} />
                 <Button onClick={onStartClick}>Start</Button>
