@@ -11,13 +11,15 @@ edition = "2021"
 tauri-build = { version = "1", features = [] }
 
 [dependencies]
-tauri = { version = "1", features = ["shell-open"] }
+tauri = { version = "1", features = [ "dialog-open", "shell-open"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 grok = { version = "2.0.0" }
 reqwest = { version = "0.12.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 lance = "0.10"
+datafusion = "37.1.0"
+arrow-json = "51.0.0"
 object_store = { version = "0.7", features = ["aws"] }
 futures-util = "0.3"
 

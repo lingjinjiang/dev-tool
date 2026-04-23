@@ -3,6 +3,11 @@ use lance::dataset::Dataset;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Arc;
+
+#[allow(deprecated)]
+use arrow_json::writer::record_batches_to_json_rows;
+use datafusion::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TableInfo {
@@ -26,6 +31,13 @@ pub struct PageData {
     pub page: usize,
     pub page_size: usize,
     pub total_pages: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SqlResult {
+    pub rows: Vec<HashMap<String, serde_json::Value>>,
+    pub columns: Vec<String>,
+    pub total_rows: usize,
 }
 
 #[tauri::command]
@@ -124,7 +136,7 @@ pub async fn get_table_data(
         .await
         .map_err(|e| format!("Failed to read batch: {}", e))?
     {
-        for row_idx in 0..batch.num_rows() {
+        for _row_idx in 0..batch.num_rows() {
             let mut row_data = HashMap::new();
             for (col_idx, field) in batch.schema().fields().iter().enumerate() {
                 let column = batch.column(col_idx);
@@ -142,5 +154,88 @@ pub async fn get_table_data(
         page,
         page_size,
         total_pages,
+    })
+}
+
+#[allow(deprecated)]
+#[tauri::command]
+pub async fn execute_lance_sql(
+    directory: String,
+    sql: String,
+) -> Result<SqlResult, String> {
+    let dir_path = Path::new(&directory);
+    if !dir_path.exists() {
+        return Err(format!("Directory does not exist: {}", directory));
+    }
+
+    let ctx = SessionContext::new();
+
+    // Register all lance tables in the directory
+    let mut table_names = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(dir_path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let path_str = path.to_string_lossy().to_string();
+                if let Ok(dataset) = Dataset::open(&path_str).await {
+                    if let Some(name) = path.file_name() {
+                        let table_name = name.to_string_lossy().to_string();
+                        ctx.register_table(
+                            &table_name,
+                            Arc::new(dataset) as Arc<dyn datafusion::datasource::TableProvider>,
+                        )
+                        .map_err(|e| format!("Failed to register table {}: {}", table_name, e))?;
+                        table_names.push(table_name);
+                    }
+                }
+            }
+        }
+    }
+
+    if table_names.is_empty() {
+        return Err("No lance tables found in directory".to_string());
+    }
+
+    let df = ctx
+        .sql(&sql)
+        .await
+        .map_err(|e| format!("SQL execution failed: {}", e))?;
+
+    let batches = df
+        .collect()
+        .await
+        .map_err(|e| format!("Failed to collect results: {}", e))?;
+
+    let mut all_rows: Vec<HashMap<String, serde_json::Value>> = Vec::new();
+    let mut columns: Vec<String> = Vec::new();
+
+    for batch in &batches {
+        if columns.is_empty() {
+            columns = batch
+                .schema()
+                .fields()
+                .iter()
+                .map(|f| f.name().clone())
+                .collect();
+        }
+
+        let json_rows = record_batches_to_json_rows(&[batch])
+            .map_err(|e| format!("Failed to convert to JSON: {}", e))?;
+
+        for json_row in json_rows {
+            let mut row = HashMap::new();
+            for (key, value) in json_row {
+                row.insert(key, value);
+            }
+            all_rows.push(row);
+        }
+    }
+
+    let total_rows = all_rows.len();
+
+    Ok(SqlResult {
+        rows: all_rows,
+        columns,
+        total_rows,
     })
 }

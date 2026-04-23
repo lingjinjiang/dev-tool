@@ -1,6 +1,5 @@
 use reqwest::Client;
-use serde_json::{error, Value};
-use tauri::http::status;
+use serde_json::Value;
 const API_QUERY_RANGE: &str = "/api/v1/query_range";
 
 #[tauri::command]

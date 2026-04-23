@@ -15,7 +15,8 @@ fn main() {
             metrics::prometheus_query_range,
             lance::list_lance_tables,
             lance::get_table_info,
-            lance::get_table_data
+            lance::get_table_data,
+            lance::execute_lance_sql
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
