@@ -1,13 +1,16 @@
-import React from "react";
-import Grok from './tools/grok/Grok'
-import TimeConverter from './tools/time/TimeConverter'
-import Prometheus from './tools/metrics/Prometheus'
-import LanceViewer from './tools/lance/LanceViewer'
-import JsonValidator from './tools/json/JsonValidator'
+import Grok from "./tools/grok/Grok";
+import TimeConverter from "./tools/time/TimeConverter";
+import Prometheus from "./tools/metrics/Prometheus";
+import LanceViewer from "./tools/lance/LanceViewer";
+import JsonValidator from "./tools/json/JsonValidator";
 import "./App.css";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
-import { NavDrawer, NavDrawerBody, NavItem } from "@fluentui/react-nav-preview";
+import {
+  NavDrawer,
+  NavDrawerBody,
+  NavItem as NavItemComponent,
+} from "@fluentui/react-nav-preview";
 
 const useStyles = makeStyles({
   root: {
@@ -23,65 +26,61 @@ const useStyles = makeStyles({
     alignItems: "center",
     overflow: "auto",
   },
-})
+});
 
-type NavItem = {
-  navigate: React.MouseEventHandler<HTMLButtonElement>,
-  label: string,
-  key: string,
-}
+type NavItemConfig = {
+  path: string;
+  label: string;
+  key: string;
+};
 
-const App: React.FC = () => {
+const navItems: NavItemConfig[] = [
+  { path: "/grok", label: "Grok 解析", key: "grok" },
+  { path: "/time", label: "时间转换", key: "time" },
+  { path: "/metrics", label: "指标查询", key: "metrics" },
+  { path: "/lance", label: "LanceDB", key: "lance" },
+  { path: "/json", label: "JSON 校验", key: "json" },
+];
+
+export default function App() {
   const styles = useStyles();
   const navigate = useNavigate();
-  const navItems: NavItem[] = [{
-    navigate: () => { navigate("/grok", { replace: true }) },
-    label: `Grok`,
-    key: 'grok',
-  }, {
-    navigate: () => { navigate("/time", { replace: true }) },
-    label: `Time`,
-    key: 'time',
-  }, {
-    navigate: () => { navigate("/metrics", { replace: true }) },
-    label: `Metrics`,
-    key: 'metrics',
-  }, {
-    navigate: () => { navigate("/lance", { replace: true }) },
-    label: `LanceDB`,
-    key: 'lance',
-  }, {
-    navigate: () => { navigate("/json", { replace: true }) },
-    label: `JSON`,
-    key: 'json',
-  }];
-  const buildNavItems = () => {
-    return navItems.map(i => <NavItem style={{ padding: '4px 8px' }} value={i.key} onClick={i.navigate}>{i.label}</NavItem>)
-  };
+
+  const buildNavItems = () =>
+    navItems.map((item) => (
+      <NavItemComponent
+        key={item.key}
+        style={{ padding: "4px 8px" }}
+        value={item.key}
+        onClick={() => navigate(item.path, { replace: true })}
+      >
+        {item.label}
+      </NavItemComponent>
+    ));
+
   return (
     <div className={styles.root}>
       <NavDrawer
-        defaultSelectedValue='grok'
+        defaultSelectedValue="grok"
         defaultSelectedCategoryValue="1"
         open={true}
-        type={"inline"}
-        style={{ height: '100vh', width: 'auto', minWidth: 0, flexShrink: 0 }}
+        type="inline"
+        style={{ height: "100vh", width: "auto", minWidth: 0, flexShrink: 0 }}
       >
-        <NavDrawerBody style={{ padding: '8px 0' }}>
+        <NavDrawerBody style={{ padding: "8px 0" }}>
           {buildNavItems()}
         </NavDrawerBody>
       </NavDrawer>
       <div className={styles.content}>
         <Routes>
-          <Route path="/" element={<Grok />}></Route>
-          <Route path="/grok" element={<Grok />}></Route>
-          <Route path="/time" element={<TimeConverter />}></Route>
-          <Route path="/metrics" element={<Prometheus />}></Route>
-          <Route path="/lance" element={<LanceViewer />}></Route>
-          <Route path="/json" element={<JsonValidator />}></Route>
+          <Route path="/" element={<Grok />} />
+          <Route path="/grok" element={<Grok />} />
+          <Route path="/time" element={<TimeConverter />} />
+          <Route path="/metrics" element={<Prometheus />} />
+          <Route path="/lance" element={<LanceViewer />} />
+          <Route path="/json" element={<JsonValidator />} />
         </Routes>
       </div>
     </div>
-  )
+  );
 }
-export default App;

@@ -1384,10 +1384,10 @@ dependencies = [
  "half",
  "hashbrown 0.14.5",
  "indexmap 2.2.6",
- "itertools 0.12.1",
+ "itertools",
  "log",
  "num_cpus",
- "object_store 0.9.1",
+ "object_store",
  "parking_lot",
  "parquet",
  "pin-project-lite",
@@ -1418,7 +1418,7 @@ dependencies = [
  "instant",
  "libc",
  "num_cpus",
- "object_store 0.9.1",
+ "object_store",
  "parquet",
  "sqlparser",
 ]
@@ -1446,7 +1446,7 @@ dependencies = [
  "futures",
  "hashbrown 0.14.5",
  "log",
- "object_store 0.9.1",
+ "object_store",
  "parking_lot",
  "rand 0.8.5",
  "tempfile",
@@ -1486,7 +1486,7 @@ dependencies = [
  "datafusion-expr",
  "datafusion-physical-expr",
  "hex",
- "itertools 0.12.1",
+ "itertools",
  "log",
  "md-5",
  "regex",
@@ -1510,7 +1510,7 @@ dependencies = [
  "datafusion-execution",
  "datafusion-expr",
  "datafusion-functions",
- "itertools 0.12.1",
+ "itertools",
  "log",
  "paste",
 ]
@@ -1528,7 +1528,7 @@ dependencies = [
  "datafusion-expr",
  "datafusion-physical-expr",
  "hashbrown 0.14.5",
- "itertools 0.12.1",
+ "itertools",
  "log",
  "regex-syntax 0.8.4",
 ]
@@ -1557,7 +1557,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "hex",
  "indexmap 2.2.6",
- "itertools 0.12.1",
+ "itertools",
  "log",
  "md-5",
  "paste",
@@ -1590,7 +1590,7 @@ dependencies = [
  "half",
  "hashbrown 0.14.5",
  "indexmap 2.2.6",
- "itertools 0.12.1",
+ "itertools",
  "log",
  "once_cell",
  "parking_lot",
@@ -1642,12 +1642,12 @@ dependencies = [
 name = "dev-tool"
 version = "0.0.0"
 dependencies = [
+ "arrow",
  "arrow-json",
  "datafusion",
  "futures-util",
  "grok",
  "lance",
- "object_store 0.7.1",
  "reqwest 0.12.12",
  "serde",
  "serde_json",
@@ -2781,15 +2781,6 @@ checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
 
 [[package]]
 name = "itertools"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
@@ -2922,7 +2913,7 @@ dependencies = [
  "datafusion-physical-expr",
  "futures",
  "half",
- "itertools 0.12.1",
+ "itertools",
  "lance-arrow",
  "lance-core",
  "lance-datafusion",
@@ -2937,7 +2928,7 @@ dependencies = [
  "lru_time_cache",
  "moka",
  "num_cpus",
- "object_store 0.9.1",
+ "object_store",
  "ordered-float 3.9.2",
  "pin-project",
  "prost",
@@ -2995,7 +2986,7 @@ dependencies = [
  "mock_instant",
  "moka",
  "num_cpus",
- "object_store 0.9.1",
+ "object_store",
  "pin-project",
  "prost",
  "rand 0.8.5",
@@ -3103,7 +3094,7 @@ dependencies = [
  "log",
  "num-traits",
  "num_cpus",
- "object_store 0.9.1",
+ "object_store",
  "prost",
  "prost-build",
  "prost-types",
@@ -3133,7 +3124,7 @@ dependencies = [
  "datafusion-sql",
  "futures",
  "half",
- "itertools 0.12.1",
+ "itertools",
  "lance-arrow",
  "lance-core",
  "lance-datafusion",
@@ -3145,7 +3136,7 @@ dependencies = [
  "log",
  "num-traits",
  "num_cpus",
- "object_store 0.9.1",
+ "object_store",
  "prost",
  "prost-build",
  "rand 0.8.5",
@@ -3185,7 +3176,7 @@ dependencies = [
  "lance-core",
  "lazy_static",
  "num_cpus",
- "object_store 0.9.1",
+ "object_store",
  "path_abs",
  "pin-project",
  "prost",
@@ -3245,7 +3236,7 @@ dependencies = [
  "lance-file",
  "lance-io",
  "log",
- "object_store 0.9.1",
+ "object_store",
  "prost",
  "prost-build",
  "prost-types",
@@ -3789,35 +3780,6 @@ dependencies = [
 
 [[package]]
 name = "object_store"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f930c88a43b1c3f6e776dfe495b4afab89882dbc81530c632db2ed65451ebcb4"
-dependencies = [
- "async-trait",
- "base64 0.21.7",
- "bytes",
- "chrono",
- "futures",
- "humantime",
- "hyper 0.14.32",
- "itertools 0.11.0",
- "parking_lot",
- "percent-encoding",
- "quick-xml 0.30.0",
- "rand 0.8.5",
- "reqwest 0.11.27",
- "ring 0.16.20",
- "serde",
- "serde_json",
- "snafu",
- "tokio",
- "tracing",
- "url",
- "walkdir",
-]
-
-[[package]]
-name = "object_store"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8718f8b65fdf67a45108d1548347d4af7d71fb81ce727bbf9e3b2535e079db3"
@@ -3829,7 +3791,7 @@ dependencies = [
  "futures",
  "humantime",
  "hyper 0.14.32",
- "itertools 0.12.1",
+ "itertools",
  "md-5",
  "parking_lot",
  "percent-encoding",
@@ -4038,7 +4000,7 @@ dependencies = [
  "lz4_flex",
  "num",
  "num-bigint",
- "object_store 0.9.1",
+ "object_store",
  "paste",
  "seq-macro",
  "snap",
@@ -4400,7 +4362,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
  "heck 0.5.0",
- "itertools 0.12.1",
+ "itertools",
  "log",
  "multimap",
  "once_cell",
@@ -4420,7 +4382,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools",
  "proc-macro2",
  "quote",
  "syn 2.0.87",
@@ -4460,16 +4422,6 @@ dependencies = [
  "wasi 0.11.0+wasi-snapshot-preview1",
  "web-sys",
  "winapi",
-]
-
-[[package]]
-name = "quick-xml"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eff6510e86862b57b210fd8cbe8ed3f0d7d600b9c2863cd4549a2e033c66e956"
-dependencies = [
- "memchr",
- "serde",
 ]
 
 [[package]]
@@ -4735,7 +4687,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "webpki-roots",
  "winreg 0.50.0",
 ]
 
@@ -6613,12 +6564,6 @@ dependencies = [
  "soup2-sys",
  "system-deps 6.2.2",
 ]
-
-[[package]]
-name = "webpki-roots"
-version = "0.25.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 
 [[package]]
 name = "webview2-com"

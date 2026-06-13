@@ -1,13 +1,30 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use grok::Grok;
+use reqwest::Client;
 use std::collections::HashMap;
+use std::time::Duration;
 
 mod lance;
 mod metrics;
 
+pub struct ClientState {
+    client: Client,
+}
+
+impl ClientState {
+    fn new() -> Self {
+        let client = Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()
+            .expect("failed to build HTTP client");
+        Self { client }
+    }
+}
+
 fn main() {
     tauri::Builder::default()
+        .manage(ClientState::new())
         .invoke_handler(tauri::generate_handler![
             extract_fields,
             validate_grok,
@@ -24,52 +41,42 @@ fn main() {
 
 #[tauri::command]
 fn extract_fields(expr: &str, text: &str) -> Result<HashMap<String, String>, String> {
-    match complie_grok_expor(expr) {
-        Ok(pattern) => match pattern.match_against(text) {
-            Some(named_fields) => {
-                let mut result: HashMap<String, String> = HashMap::new();
-                for field in named_fields.iter() {
-                    result.insert(String::from(field.0), String::from(field.1));
-                }
-                Ok(result)
-            }
-            None => Err(String::from(
-                "input text did not match given grok expression",
-            )),
-        },
-        Err(err) => Err(String::from(format!("invalid grok: {}", err))),
+    let pattern = compile_grok_expr(expr).map_err(|e| format!("invalid grok: {}", e))?;
+    let named_fields = pattern
+        .match_against(text)
+        .ok_or("input text did not match given grok expression")?;
+
+    let mut result = HashMap::new();
+    for (name, value) in named_fields.iter() {
+        result.insert(name.to_string(), value.to_string());
     }
+    Ok(result)
 }
 
-fn complie_grok_expor(expr: &str) -> Result<grok::Pattern, grok::Error> {
+fn compile_grok_expr(expr: &str) -> Result<grok::Pattern, grok::Error> {
     let mut grok = Grok::default();
     grok.compile(expr, true)
 }
 
 #[tauri::command]
 fn validate_grok(expr: &str) -> Result<Vec<String>, String> {
-    match complie_grok_expor(expr) {
-        Ok(pattern) => {
-            let mut result: Vec<String> = vec![];
-            for p in pattern.capture_names() {
-                result.push(String::from(p))
-            }
-            if result.len() == 0 {
-                Err(String::from(format!("no named field")))
-            } else {
-                Ok(result)
-            }
-        }
-        Err(err) => Err(String::from(format!("invalid grok expression: {}", err))),
+    let pattern = compile_grok_expr(expr).map_err(|e| format!("invalid grok expression: {}", e))?;
+    let names: Vec<String> = pattern
+        .capture_names()
+        .map(|name| name.to_string())
+        .collect();
+
+    if names.is_empty() {
+        Err("no named field".to_string())
+    } else {
+        Ok(names)
     }
 }
 
 #[tauri::command]
 fn default_patterns() -> HashMap<String, String> {
-    let patterns = grok::patterns();
-    let mut result: HashMap<String, String> = HashMap::new();
-    for p in patterns.iter() {
-        result.insert(String::from(p.0), String::from(p.1));
-    }
-    result
+    grok::patterns()
+        .iter()
+        .map(|(name, pattern)| (name.to_string(), pattern.to_string()))
+        .collect()
 }

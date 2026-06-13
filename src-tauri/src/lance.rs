@@ -1,13 +1,14 @@
+use arrow::array::{Array, BooleanArray, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, LargeStringArray, StringArray, UInt16Array, UInt32Array, UInt64Array, UInt8Array};
+use arrow::datatypes::DataType;
+use arrow::record_batch::RecordBatch;
+use datafusion::prelude::*;
 use futures_util::stream::TryStreamExt;
 use lance::dataset::Dataset;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-
-#[allow(deprecated)]
-use arrow_json::writer::record_batches_to_json_rows;
-use datafusion::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TableInfo {
@@ -40,6 +41,24 @@ pub struct SqlResult {
     pub total_rows: usize,
 }
 
+/// 校验 `sub` 不会逃逸出 `base` 目录。
+fn validate_path(base: &Path, sub: &str) -> Result<PathBuf, String> {
+    let canonical_base = base
+        .canonicalize()
+        .map_err(|e| format!("Invalid directory: {}", e))?;
+    let joined = canonical_base.join(sub);
+    let canonical_joined = joined.canonicalize().unwrap_or(joined.clone());
+
+    if !canonical_joined.starts_with(&canonical_base) {
+        return Err("Invalid path: traversal detected".to_string());
+    }
+    Ok(joined)
+}
+
+fn is_lance_dataset(path: &Path) -> bool {
+    path.is_dir() && path.join("_latest.manifest").exists()
+}
+
 #[tauri::command]
 pub async fn list_lance_tables(directory: String) -> Result<Vec<String>, String> {
     let dir_path = Path::new(&directory);
@@ -48,17 +67,12 @@ pub async fn list_lance_tables(directory: String) -> Result<Vec<String>, String>
     }
 
     let mut tables = Vec::new();
-
-    // Walk through directory to find lance datasets
     if let Ok(entries) = std::fs::read_dir(dir_path) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir() {
-                // Check if it's a lance dataset by trying to open it
-                if let Ok(_) = Dataset::open(&path.to_string_lossy()).await {
-                    if let Some(name) = path.file_name() {
-                        tables.push(name.to_string_lossy().to_string());
-                    }
+            if is_lance_dataset(&path) {
+                if let Some(name) = path.file_name() {
+                    tables.push(name.to_string_lossy().to_string());
                 }
             }
         }
@@ -69,7 +83,7 @@ pub async fn list_lance_tables(directory: String) -> Result<Vec<String>, String>
 
 #[tauri::command]
 pub async fn get_table_info(directory: String, table_name: String) -> Result<TableInfo, String> {
-    let dataset_path = Path::new(&directory).join(&table_name);
+    let dataset_path = validate_path(Path::new(&directory), &table_name)?;
     let dataset_uri = dataset_path.to_string_lossy();
 
     let dataset = Dataset::open(&dataset_uri)
@@ -77,20 +91,25 @@ pub async fn get_table_info(directory: String, table_name: String) -> Result<Tab
         .map_err(|e| format!("Failed to open dataset: {}", e))?;
 
     let schema = dataset.schema();
-    let mut fields = Vec::new();
-
-    for field in schema.fields.iter() {
-        fields.push(FieldInfo {
+    let fields: Vec<FieldInfo> = schema
+        .fields
+        .iter()
+        .map(|field| FieldInfo {
             name: field.name.clone(),
             data_type: format!("{:?}", field.data_type()),
             nullable: field.nullable,
-        });
-    }
+        })
+        .collect();
+
+    let num_rows = dataset
+        .count_rows(None)
+        .await
+        .map_err(|e| format!("Failed to count rows: {}", e))?;
 
     Ok(TableInfo {
         name: table_name,
         schema: fields,
-        num_rows: dataset.count_rows(None).await.unwrap_or(0),
+        num_rows,
         num_columns: schema.fields.len(),
     })
 }
@@ -102,21 +121,24 @@ pub async fn get_table_data(
     page: usize,
     page_size: usize,
 ) -> Result<PageData, String> {
-    let dataset_path = Path::new(&directory).join(&table_name);
+    let dataset_path = validate_path(Path::new(&directory), &table_name)?;
     let dataset_uri = dataset_path.to_string_lossy();
 
     let dataset = Dataset::open(&dataset_uri)
         .await
         .map_err(|e| format!("Failed to open dataset: {}", e))?;
 
-    let total_rows = dataset.count_rows(None).await.unwrap_or(0);
+    let total_rows = dataset
+        .count_rows(None)
+        .await
+        .map_err(|e| format!("Failed to count rows: {}", e))?;
+
     let total_pages = if page_size > 0 {
-        (total_rows + page_size - 1) / page_size
+        total_rows.div_ceil(page_size)
     } else {
         0
     };
 
-    // Use scan with limit and offset
     let mut scanner = dataset.scan();
     scanner
         .limit(Some(page_size as i64), Some((page * page_size) as i64))
@@ -127,25 +149,15 @@ pub async fn get_table_data(
         .await
         .map_err(|e| format!("Failed to create scanner: {}", e))?;
 
+    let mut stream = stream;
     let mut rows = Vec::new();
 
-    // Process stream
-    let mut stream = stream;
     while let Some(batch) = stream
         .try_next()
         .await
         .map_err(|e| format!("Failed to read batch: {}", e))?
     {
-        for _row_idx in 0..batch.num_rows() {
-            let mut row_data = HashMap::new();
-            for (col_idx, field) in batch.schema().fields().iter().enumerate() {
-                let column = batch.column(col_idx);
-                // Convert to string representation
-                let value_str = format!("{:?}", column);
-                row_data.insert(field.name().clone(), serde_json::Value::String(value_str));
-            }
-            rows.push(row_data);
-        }
+        rows.extend(record_batch_to_rows(&batch));
     }
 
     Ok(PageData {
@@ -157,36 +169,33 @@ pub async fn get_table_data(
     })
 }
 
-#[allow(deprecated)]
 #[tauri::command]
-pub async fn execute_lance_sql(
-    directory: String,
-    sql: String,
-) -> Result<SqlResult, String> {
+pub async fn execute_lance_sql(directory: String, sql: String) -> Result<SqlResult, String> {
     let dir_path = Path::new(&directory);
     if !dir_path.exists() {
         return Err(format!("Directory does not exist: {}", directory));
     }
 
     let ctx = SessionContext::new();
-
-    // Register all lance tables in the directory
     let mut table_names = Vec::new();
+
     if let Ok(entries) = std::fs::read_dir(dir_path) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir() {
+            if is_lance_dataset(&path) {
                 let path_str = path.to_string_lossy().to_string();
-                if let Ok(dataset) = Dataset::open(&path_str).await {
-                    if let Some(name) = path.file_name() {
-                        let table_name = name.to_string_lossy().to_string();
-                        ctx.register_table(
-                            &table_name,
-                            Arc::new(dataset) as Arc<dyn datafusion::datasource::TableProvider>,
-                        )
-                        .map_err(|e| format!("Failed to register table {}: {}", table_name, e))?;
-                        table_names.push(table_name);
-                    }
+                let dataset = Dataset::open(&path_str)
+                    .await
+                    .map_err(|e| format!("Failed to open dataset {}: {}", path_str, e))?;
+
+                if let Some(name) = path.file_name() {
+                    let table_name = name.to_string_lossy().to_string();
+                    ctx.register_table(
+                        &table_name,
+                        Arc::new(dataset) as Arc<dyn datafusion::datasource::TableProvider>,
+                    )
+                    .map_err(|e| format!("Failed to register table {}: {}", table_name, e))?;
+                    table_names.push(table_name);
                 }
             }
         }
@@ -218,17 +227,7 @@ pub async fn execute_lance_sql(
                 .map(|f| f.name().clone())
                 .collect();
         }
-
-        let json_rows = record_batches_to_json_rows(&[batch])
-            .map_err(|e| format!("Failed to convert to JSON: {}", e))?;
-
-        for json_row in json_rows {
-            let mut row = HashMap::new();
-            for (key, value) in json_row {
-                row.insert(key, value);
-            }
-            all_rows.push(row);
-        }
+        all_rows.extend(record_batch_to_rows(batch));
     }
 
     let total_rows = all_rows.len();
@@ -238,4 +237,55 @@ pub async fn execute_lance_sql(
         columns,
         total_rows,
     })
+}
+
+/// 将 RecordBatch 按行转换为 HashMap 列表。
+fn record_batch_to_rows(batch: &RecordBatch) -> Vec<HashMap<String, serde_json::Value>> {
+    let num_rows = batch.num_rows();
+    let mut rows: Vec<HashMap<String, serde_json::Value>> =
+        (0..num_rows).map(|_| HashMap::new()).collect();
+
+    for (col_idx, field) in batch.schema().fields().iter().enumerate() {
+        let column = batch.column(col_idx);
+        for (row_idx, row) in rows.iter_mut().enumerate().take(num_rows) {
+            let value = array_value_to_json(column, row_idx);
+            row.insert(field.name().clone(), value);
+        }
+    }
+
+    rows
+}
+
+/// 将 Arrow 数组中的某个值转换为 serde_json::Value。
+fn array_value_to_json(array: &dyn Array, row_idx: usize) -> serde_json::Value {
+    if array.is_null(row_idx) {
+        return serde_json::Value::Null;
+    }
+
+    macro_rules! downcast_value {
+        ($array:expr, $ty:ty) => {
+            $array
+                .as_any()
+                .downcast_ref::<$ty>()
+                .unwrap()
+                .value(row_idx)
+        };
+    }
+
+    match array.data_type() {
+        DataType::Int8 => json!(downcast_value!(array, Int8Array)),
+        DataType::Int16 => json!(downcast_value!(array, Int16Array)),
+        DataType::Int32 => json!(downcast_value!(array, Int32Array)),
+        DataType::Int64 => json!(downcast_value!(array, Int64Array)),
+        DataType::UInt8 => json!(downcast_value!(array, UInt8Array)),
+        DataType::UInt16 => json!(downcast_value!(array, UInt16Array)),
+        DataType::UInt32 => json!(downcast_value!(array, UInt32Array)),
+        DataType::UInt64 => json!(downcast_value!(array, UInt64Array)),
+        DataType::Float32 => json!(downcast_value!(array, Float32Array)),
+        DataType::Float64 => json!(downcast_value!(array, Float64Array)),
+        DataType::Boolean => json!(downcast_value!(array, BooleanArray)),
+        DataType::Utf8 => json!(downcast_value!(array, StringArray)),
+        DataType::LargeUtf8 => json!(downcast_value!(array, LargeStringArray)),
+        _ => serde_json::Value::String(format!("{:?}", array)),
+    }
 }

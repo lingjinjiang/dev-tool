@@ -1,5 +1,8 @@
-use reqwest::Client;
 use serde_json::Value;
+use tauri::State;
+
+use crate::ClientState;
+
 const API_QUERY_RANGE: &str = "/api/v1/query_range";
 
 #[tauri::command]
@@ -8,30 +11,37 @@ pub async fn prometheus_query_range(
     prom_ql: &str,
     start_time: u64,
     end_time: u64,
-    step: Option<f64>,
+    step: Option<u64>,
+    state: State<'_, ClientState>,
 ) -> Result<Value, String> {
     let start_sec = (start_time / 1000).to_string();
     let end_sec = (end_time / 1000).to_string();
-    let step_sec = step.map(|s| s.to_string());
+    let step_str = step.map(|s| format!("{}s", s));
 
     let url = format!("{}{}", prom_url, API_QUERY_RANGE);
-    let mut query_params = vec![("query", prom_ql), ("start", &start_sec), ("end", &end_sec)];
-    if let Some(s) = &step_sec {
-        query_params.push(("step", s));
+    let mut query_params = vec![
+        ("query", prom_ql),
+        ("start", start_sec.as_str()),
+        ("end", end_sec.as_str()),
+    ];
+    if let Some(ref s) = step_str {
+        query_params.push(("step", s.as_str()));
     }
 
-    let client: Client = Client::new();
-    match client.post(&url).query(&query_params).send().await {
-        Ok(response) => {
-            if !response.status().is_success() {
-                let status = response.status();
-                return Err(format!("HTTP error {}", status).into());
-            }
-            match response.json::<Value>().await {
-                Ok(json_response) => Ok(json_response),
-                Err(err) => Err(format!("invalid response: {}", err).into()),
-            }
-        }
-        Err(err) => Err(format!("failed to send request: {}", err).into()),
+    let response = state
+        .client
+        .post(&url)
+        .query(&query_params)
+        .send()
+        .await
+        .map_err(|e| format!("failed to send request: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("HTTP error {}", response.status()));
     }
+
+    response
+        .json::<Value>()
+        .await
+        .map_err(|e| format!("invalid response: {}", e))
 }

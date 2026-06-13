@@ -19,8 +19,8 @@ reqwest = { version = "0.12.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 lance = "0.10"
 datafusion = "37.1.0"
+arrow = "51"
 arrow-json = "51.0.0"
-object_store = { version = "0.7", features = ["aws"] }
 futures-util = "0.3"
 
 [features]
