@@ -3,6 +3,7 @@ import TimeConverter from "./tools/time/TimeConverter";
 import Prometheus from "./tools/metrics/Prometheus";
 import LanceViewer from "./tools/lance/LanceViewer";
 import JsonValidator from "./tools/json/JsonValidator";
+import YamlValidator from "./tools/yaml/YamlValidator";
 import "./App.css";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
@@ -40,6 +41,7 @@ const navItems: NavItemConfig[] = [
   { path: "/metrics", label: "指标查询", key: "metrics" },
   { path: "/lance", label: "LanceDB", key: "lance" },
   { path: "/json", label: "JSON 校验", key: "json" },
+  { path: "/yaml", label: "YAML 校验", key: "yaml" },
 ];
 
 export default function App() {
@@ -79,6 +81,7 @@ export default function App() {
           <Route path="/metrics" element={<Prometheus />} />
           <Route path="/lance" element={<LanceViewer />} />
           <Route path="/json" element={<JsonValidator />} />
+          <Route path="/yaml" element={<YamlValidator />} />
         </Routes>
       </div>
     </div>
